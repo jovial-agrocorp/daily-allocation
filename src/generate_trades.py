@@ -115,8 +115,30 @@ def generate_trades(trade_date=None, output_path=None):
             "New AGS Sub Contract": None,
         })
 
-    df_futures = pd.DataFrame(futures_rows).sort_values("Contract").reset_index(drop=True) if futures_rows else pd.DataFrame(columns=FUTURES_INFO_COLS + FUTURES_EDITABLE)
-    df_options = pd.DataFrame(options_rows).sort_values("Contract").reset_index(drop=True) if options_rows else pd.DataFrame(columns=OPTIONS_INFO_COLS  + OPTIONS_EDITABLE)
+    def _sum_or_none(s):
+        return s.sum() if s.notna().any() else None
+
+    def _aggregate(rows, group_cols, info_cols, editable_cols):
+        df = pd.DataFrame(rows)
+        df["_qty"] = df["Long"].fillna(0) + df["Short"].fillna(0)
+        df["_wt_price"] = df["Price"] * df["_qty"]
+        agg = df.groupby(group_cols, as_index=False).agg(
+            Long=("Long", _sum_or_none),
+            Short=("Short", _sum_or_none),
+            _wt_price=("_wt_price", "sum"),
+            _qty=("_qty", "sum"),
+        )
+        agg["Price"] = (agg["_wt_price"] / agg["_qty"]).round(2)
+        agg = agg.drop(columns=["_wt_price", "_qty"])
+        for col in editable_cols:
+            agg[col] = None
+        return agg[info_cols + editable_cols].sort_values("Contract").reset_index(drop=True)
+
+    futures_group_cols = ["Account Number", "Trade Date", "Contract", "Commodity Name"]
+    options_group_cols = ["Account Number", "Trade Date", "Contract", "Commodity Name", "Strike", "Put/Call"]
+
+    df_futures = _aggregate(futures_rows, futures_group_cols, FUTURES_INFO_COLS, FUTURES_EDITABLE) if futures_rows else pd.DataFrame(columns=FUTURES_INFO_COLS + FUTURES_EDITABLE)
+    df_options = _aggregate(options_rows, options_group_cols, OPTIONS_INFO_COLS,  OPTIONS_EDITABLE) if options_rows else pd.DataFrame(columns=OPTIONS_INFO_COLS  + OPTIONS_EDITABLE)
 
     save_path = output_path or TEMPLATE_FILE
     with pd.ExcelWriter(save_path, engine="openpyxl") as writer:
