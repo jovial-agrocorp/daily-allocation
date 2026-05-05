@@ -1,0 +1,7 @@
+pyTelegramBotAPI
+python-dotenv
+simple-salesforce
+pandas
+openpyxl
+requests
+pandas-market-calendars
