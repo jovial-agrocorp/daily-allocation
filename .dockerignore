@@ -1,0 +1,5 @@
+.git
+src/.env
+src/__pycache__
+src/*.pyc
+src/*.xlsx
