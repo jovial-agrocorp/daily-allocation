@@ -4,7 +4,7 @@ import contextlib
 from dotenv import load_dotenv
 import telebot
 
-from generate_trades import generate_trades, TEMPLATE_FILE
+from generate_trades import generate_trades
 from update_salesforce import update_salesforce
 
 load_dotenv()
@@ -14,13 +14,19 @@ bot = telebot.TeleBot(os.getenv("TELEGRAM_BOT_TOKEN"))
 
 @bot.message_handler(commands=["generate_trades"])
 def handle_generate_trades(message):
-    bot.reply_to(message, "Fetching trades from Neon...")
+    msg = bot.reply_to(message, "Please enter the trade date (YYYY-MM-DD):")
+    bot.register_next_step_handler(msg, process_trade_date)
+
+
+def process_trade_date(message):
+    trade_date = message.text.strip()
+    bot.reply_to(message, f"Fetching trades for {trade_date}...")
     buf = io.StringIO()
     try:
         with contextlib.redirect_stdout(buf):
-            generate_trades()
+            save_path = generate_trades(trade_date)
         output = buf.getvalue().strip()
-        with open(TEMPLATE_FILE, "rb") as f:
+        with open(save_path, "rb") as f:
             bot.send_document(message.chat.id, f, caption=output or "Done.")
     except Exception as e:
         bot.reply_to(message, f"Error: {e}")
