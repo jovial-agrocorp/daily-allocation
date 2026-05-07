@@ -5,8 +5,7 @@ from openpyxl.utils import get_column_letter
 from datetime import datetime, timedelta
 from neon import Neon
 
-SRC_DIR       = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_FILE = os.path.join(SRC_DIR, f"neon_trades_{datetime.now().strftime('%Y-%m-%d')}.xlsx")
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 CUTOFF_HOUR   = 8  # Before 8am, treat as previous trading day
 SF_ACCOUNTS   = ["TMG30982", "TMG30985"]
 
@@ -120,27 +119,21 @@ def generate_trades(trade_date=None, output_path=None):
 
     def _aggregate(rows, group_cols, info_cols, editable_cols):
         df = pd.DataFrame(rows)
-        df["_qty"] = df["Long"].fillna(0) + df["Short"].fillna(0)
-        df["_wt_price"] = df["Price"] * df["_qty"]
         agg = df.groupby(group_cols, as_index=False).agg(
             Long=("Long", _sum_or_none),
             Short=("Short", _sum_or_none),
-            _wt_price=("_wt_price", "sum"),
-            _qty=("_qty", "sum"),
         )
-        agg["Price"] = (agg["_wt_price"] / agg["_qty"]).round(2)
-        agg = agg.drop(columns=["_wt_price", "_qty"])
         for col in editable_cols:
             agg[col] = None
         return agg[info_cols + editable_cols].sort_values("Contract").reset_index(drop=True)
 
-    futures_group_cols = ["Account Number", "Trade Date", "Contract", "Commodity Name"]
-    options_group_cols = ["Account Number", "Trade Date", "Contract", "Commodity Name", "Strike", "Put/Call"]
+    futures_group_cols = ["Account Number", "Trade Date", "Contract", "Commodity Name", "Price"]
+    options_group_cols = ["Account Number", "Trade Date", "Contract", "Commodity Name", "Price", "Strike", "Put/Call"]
 
     df_futures = _aggregate(futures_rows, futures_group_cols, FUTURES_INFO_COLS, FUTURES_EDITABLE) if futures_rows else pd.DataFrame(columns=FUTURES_INFO_COLS + FUTURES_EDITABLE)
     df_options = _aggregate(options_rows, options_group_cols, OPTIONS_INFO_COLS,  OPTIONS_EDITABLE) if options_rows else pd.DataFrame(columns=OPTIONS_INFO_COLS  + OPTIONS_EDITABLE)
 
-    save_path = output_path or TEMPLATE_FILE
+    save_path = output_path or os.path.join(SRC_DIR, f"neon_trades_{trade_date}.xlsx")
     with pd.ExcelWriter(save_path, engine="openpyxl") as writer:
         df_futures.to_excel(writer, index=False, sheet_name="Futures")
         df_options.to_excel(writer, index=False, sheet_name="Options")
