@@ -9,6 +9,18 @@ SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 CUTOFF_HOUR   = 8  # Before 8am, treat as previous trading day
 SF_ACCOUNTS   = ["TMG30982", "TMG30985"]
 
+# Most contracts come from Neon as a decimal (e.g. 6.2600 = 626.00 c/bu) so need *100.
+# Add exceptions here for contracts already in their native display unit.
+PRICE_MULTIPLIER = {
+    "RS": 1,    # Canola: Neon returns CAD/tonne directly (e.g. 739.10)
+}
+_DEFAULT_PRICE_MULT = 100
+
+
+def _price_mult(contract):
+    code = contract[:-3]  # strip month letter + 2-digit year (e.g. "RSN26" -> "RS")
+    return PRICE_MULTIPLIER.get(code, _DEFAULT_PRICE_MULT)
+
 FUTURES_INFO_COLS = ["Account Number", "Trade Date", "Contract", "Commodity Name", "Long", "Short", "Price"]
 OPTIONS_INFO_COLS = ["Account Number", "Trade Date", "Contract", "Commodity Name", "Long", "Short", "Price", "Strike", "Put/Call"]
 EDITABLE_COLS     = ["Book", "Strategy", "New AGP", "New AGP Sub Contract", "New AGS", "New AGS Sub Contract"]
@@ -84,7 +96,7 @@ def generate_trades(trade_date=None, output_path=None):
             "Commodity Name":       t["commodity_name"],
             "Long":                 t["contracts"] if t["contracts"] > 0 else None,
             "Short":                abs(t["contracts"]) if t["contracts"] < 0 else None,
-            "Price":                round(t["trade_price"] * 100, 2),
+            "Price":                round(t["trade_price"] * _price_mult(t["contract"]), 2),
             "Book":                 None,
             "Strategy":             None,
             "New AGP":              None,
@@ -103,7 +115,7 @@ def generate_trades(trade_date=None, output_path=None):
             "Commodity Name":       t["commodity_name"],
             "Long":                 t["contracts"] if t["contracts"] > 0 else None,
             "Short":                abs(t["contracts"]) if t["contracts"] < 0 else None,
-            "Price":                round(t["trade_price"] * 100, 2),
+            "Price":                round(t["trade_price"] * _price_mult(t["contract"]), 2),
             "Strike":               t["strike_price"],
             "Put/Call":             t["call_or_put"],
             "Book":                 None,
