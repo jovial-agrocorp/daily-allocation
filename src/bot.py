@@ -4,7 +4,7 @@ import contextlib
 from dotenv import load_dotenv
 import telebot
 
-from generate_trades import generate_trades
+from generate_trades import generate_trades, format_trades_text
 from update_salesforce import update_salesforce
 
 load_dotenv()
@@ -28,6 +28,23 @@ def process_trade_date(message):
         output = buf.getvalue().strip()
         with open(save_path, "rb") as f:
             bot.send_document(message.chat.id, f, caption=output or "Done.")
+    except Exception as e:
+        bot.reply_to(message, f"Error: {e}")
+
+
+@bot.message_handler(commands=["view_trades"])
+def handle_view_trades(message):
+    msg = bot.reply_to(message, "Please enter the trade date (YYYY-MM-DD):")
+    bot.register_next_step_handler(msg, process_view_trade_date)
+
+
+def process_view_trade_date(message):
+    trade_date = message.text.strip()
+    bot.reply_to(message, f"Fetching trades for {trade_date}...")
+    try:
+        msgs = format_trades_text(trade_date)
+        for m in msgs:
+            bot.send_message(message.chat.id, m, parse_mode="Markdown")
     except Exception as e:
         bot.reply_to(message, f"Error: {e}")
 
