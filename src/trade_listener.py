@@ -3,6 +3,7 @@ import threading
 from datetime import datetime, time as dtime, timedelta
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
+from generate_trades import SF_ACCOUNTS, _price_mult
 
 load_dotenv()
 
@@ -86,7 +87,6 @@ class TradeListener:
 
     def _loop(self):
         from neon import Neon
-from generate_trades import SF_ACCOUNTS, _price_mult
         neon = Neon()
         neon.connect()
 
