@@ -1,13 +1,13 @@
 import os
 import pandas as pd
-from openpyxl.styles import PatternFill, Font, Alignment, Protection
+from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 from datetime import datetime, timedelta
 from neon import Neon
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 CUTOFF_HOUR   = 8  # Before 8am, treat as previous trading day
-SF_ACCOUNTS   = ["TMG30982", "TMG30985"]
+SF_ACCOUNTS   = ["TMG30982", "TMG30985", "TMG31991"]
 
 # Most contracts come from Neon as a decimal (e.g. 6.2600 = 626.00 c/bu) so need *100.
 # Add exceptions here for contracts already in their native display unit.
@@ -100,11 +100,6 @@ def _style_sheet(ws, df, info_cols, all_cols):
     gray_fill   = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")
     header_font = Font(bold=True)
 
-    # Unlock all cells first (Excel locks all by default)
-    for row in ws.iter_rows():
-        for cell in row:
-            cell.protection = Protection(locked=False)
-
     for col_idx, col_name in enumerate(all_cols, 1):
         col_letter = get_column_letter(col_idx)
         is_info    = col_name in info_cols
@@ -112,9 +107,8 @@ def _style_sheet(ws, df, info_cols, all_cols):
         for row_idx in range(1, len(df) + 2):
             cell = ws[f"{col_letter}{row_idx}"]
             cell.alignment = Alignment(horizontal="left")
-            if is_info and row_idx > 1:  # keep header unlocked for filter dropdown
+            if is_info and row_idx > 1:
                 cell.fill = gray_fill
-                cell.protection = Protection(locked=True)
 
         ws[f"{col_letter}1"].font = header_font
 
@@ -125,13 +119,7 @@ def _style_sheet(ws, df, info_cols, all_cols):
         )
         ws.column_dimensions[col_letter].width = max_len + 4
 
-    # Enable filter dropdown on header row
     ws.auto_filter.ref = ws.dimensions
-
-    # Protect the sheet — locked cells become read-only, unlocked cells stay editable
-    ws.protection.sheet = True
-    ws.protection.password = ""
-    ws.protection.autoFilter = False  # allow filter interaction while sheet is protected
 
 
 def generate_trades(trade_date=None, output_path=None):

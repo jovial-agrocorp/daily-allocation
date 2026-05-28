@@ -6,6 +6,7 @@ import telebot
 
 from generate_trades import generate_trades, format_trades_text
 from update_salesforce import update_salesforce
+from trade_listener import TradeListener
 
 load_dotenv()
 
@@ -86,5 +87,6 @@ def process_excel_upload(message):
 
 
 if __name__ == "__main__":
+    TradeListener(bot).start()
     print("Bot started. Polling...")
     bot.infinity_polling()
