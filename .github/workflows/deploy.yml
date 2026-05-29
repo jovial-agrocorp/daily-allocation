@@ -22,7 +22,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: dailyallocationreg.azurecr.io/daily-allocation:latest
+          tags: |
+            dailyallocationreg.azurecr.io/daily-allocation:latest
+            dailyallocationreg.azurecr.io/daily-allocation:${{ github.sha }}
 
       - name: Log in to Azure
         uses: azure/login@v2
@@ -34,4 +36,4 @@ jobs:
           az containerapp update \
             -n daily-allocation-bot \
             -g Richard.Goh_rg_1323 \
-            --image dailyallocationreg.azurecr.io/daily-allocation:latest
+            --image dailyallocationreg.azurecr.io/daily-allocation:${{ github.sha }}
