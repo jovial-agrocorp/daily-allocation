@@ -129,7 +129,7 @@ def generate_trades(trade_date=None, output_path=None):
         print(f"ERROR: Failed to fetch trades: {e}")
         return
 
-    save_path = output_path or os.path.join(SRC_DIR, f"neon_trades_{trade_date}.xlsx")
+    save_path = output_path or os.path.join(SRC_DIR, f"neon_trades_{trade_date}_30982.xlsx")
     with pd.ExcelWriter(save_path, engine="openpyxl") as writer:
         df_futures.to_excel(writer, index=False, sheet_name="Futures")
         df_options.to_excel(writer, index=False, sheet_name="Options")
@@ -199,7 +199,6 @@ def format_trades_text(trade_date=None):
         messages.append("```\n" + "\n".join(chunk) + "\n```")
 
     return messages
-
 
 if __name__ == "__main__":
     generate_trades()
